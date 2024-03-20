@@ -1,0 +1,122 @@
+module Dem (
+ input CLOCK,
+ input [1:0] KEY,
+ output reg [5:0] second, // 0-59 giây => 6bit
+ output reg [5:0] minute // 0-59 phút => 6bit
+);
+ reg [25:0] counter; // 2.exp(x) = 50MHz -> x = 25,575 -> chọn 26bit hoặc
+hơn
+ reg stop = 1'b1;
+ reg key_check = 1'b1;
+ always @(posedge CLOCK) begin
+ if (~KEY[0]) begin
+ counter <= 0;
+ second <= 0;
+ minute <= 0;
+ stop <= 1'b0;
+ end
+ //-------- chong doi--------//
+// if (KEY[1] != key_check) begin
+// key_check <= KEY[1];
+// if (key_check == 1'b0) begin
+// stop <= ~stop;
+// key_check <= ~key_check;
+// end
+// end
+ //--------khong chong doi--------//
+ if (~KEY[1]) begin
+ stop <= ~stop;
+ end
+ //------------------------//
+
+ if (counter == 32'd49999999) begin
+ counter <= 0;
+ if (second == 6'd59) begin
+ second <= 0;
+ if (minute == 6'd59) begin
+ counter <= 0;
+ second <= 0;
+ minute <= 0;
+ end else if (stop) begin
+ minute <= minute + 1'b1;
+ end
+ end else if (stop) begin
+ second <= second + 1'b1;
+ end
+ end else begin
+ counter <= counter + 1'b1;
+ end
+ end
+endmodule
+module decoder (
+ input [5:0] second,
+ input [5:0] minute,
+ output [6:0] HEX0,
+ output [6:0] HEX1,
+ output [6:0] HEX2,
+ output [6:0] HEX3
+);
+ wire [3:0] donvi_s, chuc_s, donvi_m, chuc_m;
+ assign donvi_s = second % 10;
+ assign chuc_s = second / 10;
+ assign donvi_m = minute % 10;
+ assign chuc_m = minute / 10;
+ assign HEX0 = (donvi_s == 6'b000000) ? 7'b0000001 :
+ (donvi_s == 6'b000001) ? 7'b1001111 :
+ (donvi_s == 6'b000010) ? 7'b0010010 :
+ (donvi_s == 6'b000011) ? 7'b0000110 :
+ (donvi_s == 6'b000100) ? 7'b1001100 :
+ (donvi_s == 6'b000101) ? 7'b0100100 :
+ (donvi_s == 6'b000110) ? 7'b0100000 :
+ (donvi_s == 6'b000111) ? 7'b0001111 :
+ (donvi_s == 6'b001000) ? 7'b0000000 :
+ (donvi_s == 6'b001001) ? 7'b0000100 : 7'b1111111;
+ assign HEX1 = (chuc_s == 6'b000000) ? 7'b0000001 :
+ (chuc_s == 6'b000001) ? 7'b1001111 :
+ (chuc_s == 6'b000010) ? 7'b0010010 :
+ (chuc_s == 6'b000011) ? 7'b0000110 :
+ (chuc_s == 6'b000100) ? 7'b1001100 :
+ (chuc_s == 6'b000101) ? 7'b0100100 : 7'b1111111;
+
+ assign HEX2 = (donvi_m == 6'b000000) ? 7'b0000001 :
+ (donvi_m == 6'b000001) ? 7'b1001111 :
+ (donvi_m == 6'b000010) ? 7'b0010010 :
+ (donvi_m == 6'b000011) ? 7'b0000110 :
+ (donvi_m == 6'b000100) ? 7'b1001100 :
+ (donvi_m == 6'b000101) ? 7'b0100100 :
+ (donvi_m == 6'b000110) ? 7'b0100000 :
+ (donvi_m == 6'b000111) ? 7'b0001111 :
+ (donvi_m == 6'b001000) ? 7'b0000000 :
+ (donvi_m == 6'b001001) ? 7'b0000100 : 7'b1111111;
+ assign HEX3 = (chuc_m == 6'b000000) ? 7'b0000001 :
+ (chuc_m == 6'b000001) ? 7'b1001111 :
+ (chuc_m == 6'b000010) ? 7'b0010010 :
+ (chuc_m == 6'b000011) ? 7'b0000110 :
+ (chuc_m == 6'b000100) ? 7'b1001100 :
+ (chuc_m == 6'b000101) ? 7'b0100100 : 7'b1111111;
+endmodule
+module Cau2B (
+ input CLOCK,
+ input [1:0] KEY,
+ output [6:0] HEX0,
+ output [6:0] HEX1,
+ output [6:0] HEX2,
+ output [6:0] HEX3
+);
+ wire [5:0] second;
+ wire [5:0] minute;
+ Dem dem1s (
+ .CLOCK(CLOCK),
+ .KEY(KEY),
+ .second(second),
+ .minute(minute)
+);
+ decoder Giaima7seg (
+ .second(second),
+ .minute(minute),
+ .HEX0(HEX0),
+ .HEX1(HEX1),
+ .HEX2(HEX2),
+ .HEX3(HEX3)
+);
+endmodule
